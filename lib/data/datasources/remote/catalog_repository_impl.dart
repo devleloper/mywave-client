@@ -15,7 +15,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<SearchResult> search(String query) async {
-    final response = await _dio.get('/search/', queryParameters: {'q': query});
+    final response = await _dio.get('search/', queryParameters: {'q': query});
     
     final tracksList = response.data['tracks'] as List? ?? [];
     final albumsList = response.data['albums'] as List? ?? [];
@@ -54,7 +54,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<Album> getAlbumDetails(String providerId) async {
-    final response = await _dio.get('/album/$providerId');
+    final response = await _dio.get('album/$providerId');
     final data = response.data;
     
     List<Track>? tracks;
@@ -80,7 +80,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<Artist> getArtistDetails(String providerId) async {
-    final response = await _dio.get('/artist/$providerId');
+    final response = await _dio.get('artist/$providerId');
     final data = response.data;
     return Artist(
       id: data['id'].toString(),
@@ -92,13 +92,13 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<List<Track>> getArtistTopTracks(String providerId) async {
-    final response = await _dio.get('/artist/$providerId/top', queryParameters: {'limit': 50});
+    final response = await _dio.get('artist/$providerId/top', queryParameters: {'limit': 50});
     return _mapTracks(response.data['data'] as List);
   }
 
   @override
   Future<List<Album>> getArtistAlbums(String providerId) async {
-    final response = await _dio.get('/artist/$providerId/albums', queryParameters: {'limit': 50});
+    final response = await _dio.get('artist/$providerId/albums', queryParameters: {'limit': 50});
     final albumsList = response.data['data'] as List? ?? [];
     return albumsList.map((json) {
       return Album(
@@ -113,14 +113,14 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<List<Track>> getCharts() async {
-    final response = await _dio.get('/chart');
+    final response = await _dio.get('chart');
     return _mapTracks(response.data['tracks']['data'] as List);
   }
 
   List<Track> _mapTracks(List<dynamic> data) {
     return data.map((json) {
       final baseUrl = _dio.options.baseUrl;
-      final streamUrl = '$baseUrl/stream/${json['id']}'; // assuming backend exposes /stream/:id
+      final streamUrl = '${baseUrl}stream/${json['id']}'; // assuming backend exposes /stream/:id
       
       return Track(
         id: json['id'].toString(),

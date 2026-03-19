@@ -6,9 +6,14 @@ import 'package:injectable/injectable.dart';
 abstract class NetworkModule {
   @lazySingleton
   Dio get dio {
+    String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:3000';
+    if (!baseUrl.endsWith('/')) {
+      baseUrl += '/';
+    }
+
     final dio = Dio(
       BaseOptions(
-        baseUrl: dotenv.env['API_URL'] ?? 'http://localhost:3000',
+        baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {
