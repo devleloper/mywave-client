@@ -5,6 +5,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../data/datasources/local/auth_storage.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../presentation/widgets/mywave_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -27,8 +28,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final storage = getIt<AuthStorage>();
     await storage.saveToken(token);
     
-    // Optionally validate token via API
-    
     if (mounted) {
       context.go(AppRoutes.home);
     }
@@ -36,6 +35,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -54,9 +56,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               
               Text(
                 'Welcome to MyWave',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  letterSpacing: -0.5,
                 ),
                 textAlign: TextAlign.center,
               ).animate().slideY(begin: 0.2).fadeIn(delay: 400.ms),
@@ -65,8 +67,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               
               Text(
                 'Please enter your Streaming Access Token to continue.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white70,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ).animate().slideY(begin: 0.2).fadeIn(delay: 500.ms),
@@ -75,37 +77,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               
               TextField(
                 controller: _tokenController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Streaming Access Token (ARL)',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  prefixIcon: Icon(Icons.key, color: AppTheme.tiffanyBlue),
+                  hintStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.3)),
+                  prefixIcon: const Icon(Icons.key, color: AppTheme.tiffanyBlue),
                 ),
               ).animate().fadeIn(delay: 600.ms),
               
               const SizedBox(height: 24),
               
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveTokenAndProceed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.tiffanyBlue,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isLoading 
+              MyWaveButton(
+                text: _isLoading ? '' : 'Continue',
+                onTap: _isLoading ? () {} : _saveTokenAndProceed,
+                icon: _isLoading 
                     ? const SizedBox(
                         height: 24, 
                         width: 24, 
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2, 
+                          color: Colors.white,
+                        )
                       )
-                    : const Text(
-                        'Continue',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                    : null,
               ).animate().fadeIn(delay: 700.ms),
             ],
           ),

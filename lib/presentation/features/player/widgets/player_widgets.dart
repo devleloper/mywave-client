@@ -9,22 +9,60 @@ import '../../../widgets/explicit_badge.dart';
 import '../bloc/audio_player_bloc.dart';
 import '../bloc/audio_player_event.dart';
 
+class _SquareRectTween extends RectTween {
+  _SquareRectTween({super.begin, super.end});
+
+  @override
+  Rect? lerp(double t) {
+    if (begin == null || end == null) return Rect.lerp(begin, end, t);
+    final center = Offset.lerp(begin!.center, end!.center, t)!;
+    final width = begin!.width + (end!.width - begin!.width) * t;
+    final height = begin!.height + (end!.height - begin!.height) * t;
+    return Rect.fromCenter(center: center, width: width, height: height);
+  }
+}
+
+Widget _getAlbumFlightShuttleBuilder(
+  BuildContext flightContext,
+  Animation<double> animation,
+  HeroFlightDirection flightDirection,
+  BuildContext fromHeroContext,
+  BuildContext toHeroContext,
+  Widget imageChild,
+) {
+  return AnimatedBuilder(
+    animation: animation,
+    builder: (context, child) {
+      final radius = 10.0 + 30.0 * animation.value;
+      return AspectRatio(
+        aspectRatio: 1.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: imageChild,
+        ),
+      );
+    },
+  );
+}
+
 class AlbumArtWidget extends StatelessWidget {
   const AlbumArtWidget({
     super.key,
     required this.track,
     required this.dominantColor,
     required this.pulseController,
+    this.routeOpacity = 1.0,
   });
 
   final Track track;
   final Color dominantColor;
   final AnimationController pulseController;
+  final double routeOpacity;
 
   @override
   Widget build(BuildContext context) {
     final coverUrl = track.album?.coverUrl;
-    final size = MediaQuery.sizeOf(context).width * 0.85;
+    final size = MediaQuery.sizeOf(context).shortestSide * 0.85;
 
     return AnimatedBuilder(
       animation: pulseController,
@@ -35,30 +73,48 @@ class AlbumArtWidget extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: dominantColor.withValues(
-                  alpha: 0.5 + (pulseController.value * 0.5),
+                  alpha: (0.5 + (pulseController.value * 0.5)) * routeOpacity,
                 ),
                 blurRadius: 60 + (pulseController.value * 40),
                 spreadRadius: 10 + (pulseController.value * 20),
               ),
             ],
           ),
-          child: child,
+          child: Hero(
+            tag: 'player_cover_${track.id}',
+            createRectTween: (begin, end) => _SquareRectTween(begin: begin, end: end),
+            flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+              return _getAlbumFlightShuttleBuilder(
+                flightContext, animation, flightDirection, fromHeroContext, toHeroContext,
+                track.album?.coverUrl != null
+                    ? CachedNetworkImage(imageUrl: track.album!.coverUrl!, fit: BoxFit.cover)
+                    : ColoredBox(
+                        color: Theme.of(flightContext).colorScheme.surface,
+                        child: const Center(child: Icon(Icons.music_note, size: 64, color: Colors.white38)),
+                      ),
+              );
+            },
+            child: child!,
+          ),
         );
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(40),
-        child: coverUrl != null
-            ? CachedNetworkImage(imageUrl: coverUrl, width: size, height: size, fit: BoxFit.cover)
-            : ColoredBox(
-                color: AppTheme.surface,
-                child: SizedBox(
-                  width: size,
-                  height: size,
-                  child: const Icon(Icons.music_note, size: 64, color: Colors.white38),
+      child: AspectRatio(
+        aspectRatio: 1.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(40),
+          child: coverUrl != null
+              ? CachedNetworkImage(imageUrl: coverUrl, width: size, height: size, fit: BoxFit.cover)
+              : ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: SizedBox(
+                    width: size,
+                    height: size,
+                    child: const Icon(Icons.music_note, size: 64, color: Colors.white38),
+                  ),
                 ),
-              ),
+        ),
       ),
-    ).animate().scaleXY(begin: 0.8, end: 1.0, curve: Curves.easeOutBack, duration: 600.ms);
+    );
   }
 }
 
@@ -87,7 +143,7 @@ class TrackInfoWidget extends StatelessWidget {
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-              ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1),
+              ),
               const SizedBox(height: 4),
               Row(
                 children: [
@@ -105,7 +161,7 @@ class TrackInfoWidget extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1),
+                    ),
                   ),
                 ],
               ),
@@ -115,7 +171,7 @@ class TrackInfoWidget extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 32),
           onPressed: () {},
-        ).animate().scaleXY(delay: 400.ms, curve: Curves.bounceOut),
+        ),
       ],
     );
   }
@@ -175,7 +231,7 @@ class ProgressBarWidget extends StatelessWidget {
           ],
         ),
       ],
-    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCirc);
+    );
   }
 }
 
@@ -224,7 +280,7 @@ class ControlsWidget extends StatelessWidget {
           onPressed: () => getIt<AudioPlayerBloc>().add(ToggleRepeatEvent()),
         ),
       ],
-    ).animate().fadeIn(delay: 500.ms).scaleXY(begin: 0.8, end: 1.0, curve: Curves.easeOutBack);
+    );
   }
 }
 

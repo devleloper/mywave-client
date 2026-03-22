@@ -26,25 +26,27 @@ class AudioPlayerBloc extends Bloc<AudioPlayerEvent, AudioPlayerState> {
       ));
     });
 
+    on<IsPlayingChangedInternalEvent>((event, emit) {
+      emit(state.copyWith(isPlaying: event.isPlaying));
+    });
+
     _playerRepo.currentTrackStream.listen((track) {
       add(TrackChangedInternalEvent(track));
     });
     
     _playerRepo.isPlayingStream.listen((isPlaying) {
-      // Could add another internal event, but for simplicity we can handle stream
-      // locally or create an event. Since we can't emit asynchronously from out of handler directly inside bloc without event:
-      // We will just do a small hack or register an event for it.
+      add(IsPlayingChangedInternalEvent(isPlaying));
     });
   }
 
   Future<void> _onPlayTrack(PlayTrackEvent event, Emitter<AudioPlayerState> emit) async {
     emit(state.copyWith(context: event.context));
+    // Do not set isPlaying here synchronously. Let the stream event handle it natively.
     await _playerRepo.playTrack(
       event.track,
       context: event.context,
       initialQueue: event.initialQueue,
     );
-    emit(state.copyWith(isPlaying: true));
   }
 
   Future<void> _onPause(PauseEvent event, Emitter<AudioPlayerState> emit) async {

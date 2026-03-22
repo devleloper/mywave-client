@@ -119,16 +119,13 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   List<Track> _mapTracks(List<dynamic> data) {
     return data.map((json) {
-      final baseUrl = _dio.options.baseUrl;
-      final streamUrl = '${baseUrl}stream/${json['id']}'; // assuming backend exposes /stream/:id
-      
       return Track(
         id: json['id'].toString(),
         title: json['title'],
         durationSeconds: json['duration'] ?? 0,
         isExplicit: json['explicit_lyrics'] ?? false,
         previewUrl: json['preview'],
-        streamUrl: streamUrl,
+        streamUrl: null, // Let AudioPlayerService generate the streaming URL with auth headers
         artist: json['artist'] != null ? Artist(
           id: json['artist']['id'].toString(),
           name: json['artist']['name'],

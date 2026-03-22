@@ -16,7 +16,7 @@ class HomeScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => getIt<HomeBloc>()..add(LoadHomeDataEvent()),
       child: const Scaffold(
-        body: SafeArea(child: _HomeScrollView()),
+        body: _HomeScrollView(),
       ),
     );
   }
@@ -29,17 +29,15 @@ class _HomeScrollView extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          expandedHeight: 120,
-          floating: true,
-          pinned: true,
-          flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-            title: Text(
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 24, top: 60, bottom: 20),
+          sliver: SliverToBoxAdapter(
+            child: Text(
               'Global Charts',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    letterSpacing: -0.5,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
           ),
@@ -51,11 +49,11 @@ class _HomeScrollView extends StatelessWidget {
                   child: CircularProgressIndicator(color: AppTheme.tiffanyBlue),
                 ),
               ),
-            HomeError() => const SliverFillRemaining(
+            HomeError() => SliverFillRemaining(
                 child: Center(
                   child: Text(
                     'Error loading charts',
-                    style: TextStyle(color: Colors.redAccent),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               ),

@@ -50,7 +50,11 @@ class AppRouter {
     routes: [
       GoRoute(
         path: AppRoutes.onboarding,
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: const OnboardingScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -62,6 +66,7 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.home,
                 builder: (context, state) => const HomeScreen(),
+                routes: _metadataRoutes,
               ),
             ],
           ),
@@ -70,6 +75,7 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.search,
                 builder: (context, state) => const SearchScreen(),
+                routes: _metadataRoutes,
               ),
             ],
           ),
@@ -78,6 +84,7 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.collection,
                 builder: (context, state) => const CollectionScreen(),
+                routes: _metadataRoutes,
               ),
             ],
           ),
@@ -91,21 +98,59 @@ class AppRouter {
           ),
         ],
       ),
-      // Deep stacking routes
-      GoRoute(
-        path: '/${AppRoutes.album}/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return AlbumScreen(albumId: id);
-        },
-      ),
-      GoRoute(
-        path: '/${AppRoutes.artist}/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return ArtistScreen(artistId: id);
-        },
-      ),
     ],
   );
+
+  static final List<RouteBase> _metadataRoutes = [
+    GoRoute(
+      path: '${AppRoutes.album}/:id',
+      pageBuilder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return CustomTransitionPage(
+          key: state.pageKey,
+          child: AlbumScreen(albumId: id),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              SlideTransition(
+            position: animation.drive(
+              Tween(begin: const Offset(1, 0), end: Offset.zero)
+                  .chain(CurveTween(curve: Curves.easeInOut)),
+            ),
+            child: child,
+          ),
+        );
+      },
+      routes: _nestedMetadataRoutes,
+    ),
+    GoRoute(
+      path: '${AppRoutes.artist}/:id',
+      pageBuilder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return CustomTransitionPage(
+          key: state.pageKey,
+          child: ArtistScreen(artistId: id),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              SlideTransition(
+            position: animation.drive(
+              Tween(begin: const Offset(1, 0), end: Offset.zero)
+                  .chain(CurveTween(curve: Curves.easeInOut)),
+            ),
+            child: child,
+          ),
+        );
+      },
+      routes: _nestedMetadataRoutes,
+    ),
+  ];
+
+  // Helper for recursive nesting
+  static final List<RouteBase> _nestedMetadataRoutes = [
+    GoRoute(
+      path: 'album/:id',
+      builder: (context, state) => AlbumScreen(albumId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: 'artist/:id',
+      builder: (context, state) => ArtistScreen(artistId: state.pathParameters['id']!),
+    ),
+  ];
 }

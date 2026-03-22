@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-
-import '../../core/theme/app_theme.dart';
+import 'bounceable.dart';
 
 class ContentSliverAppBar extends StatelessWidget {
   const ContentSliverAppBar({
@@ -20,11 +19,28 @@ class ContentSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Bounceable(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
+            ),
+          ),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -35,19 +51,19 @@ class ContentSliverAppBar extends StatelessWidget {
               CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover)
             else
               Container(
-                color: AppTheme.surface,
-                child: Icon(placeholderIcon, size: 64, color: Colors.white38),
+                color: Theme.of(context).colorScheme.surface,
+                child: Icon(placeholderIcon, size: 64, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
               ),
             // Bottom gradient so the title remains legible.
-            const DecoratedBox(
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Color(0xE6121212), // AppTheme.background at 90 %
-                    Color(0xFF121212), // AppTheme.background at 100 %
+                    Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9),
+                    Theme.of(context).scaffoldBackgroundColor,
                   ],
                 ),
               ),

@@ -1,0 +1,60 @@
+Analyzing client...                                             
+
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/core/theme/app_theme.dart:26:50 • deprecated_member_use
+  error • Expected a method, getter, setter or operator declaration • lib/core/theme/app_theme.dart:75:5 • expected_executable
+  error • Unexpected text ';' • lib/core/theme/app_theme.dart:75:6 • unexpected_token
+  error • Expected a method, getter, setter or operator declaration • lib/core/theme/app_theme.dart:76:3 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/core/theme/app_theme.dart:77:1 • expected_executable
+   info • 'ConcatenatingAudioSource' is deprecated and shouldn't be used. Use AudioPlayer.setAudioSources instead • lib/data/datasources/local/audio_player_service.dart:13:17 • deprecated_member_use
+   info • 'ConcatenatingAudioSource' is deprecated and shouldn't be used. Use AudioPlayer.setAudioSources instead • lib/data/datasources/local/audio_player_service.dart:21:20 • deprecated_member_use
+warning • 'getByIndex' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:235:12 • experimental_member_use
+warning • 'getByIndexSync' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:239:12 • experimental_member_use
+warning • 'deleteByIndex' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:243:12 • experimental_member_use
+warning • 'deleteByIndexSync' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:247:12 • experimental_member_use
+warning • 'getAllByIndex' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:252:12 • experimental_member_use
+warning • 'getAllByIndexSync' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:257:12 • experimental_member_use
+warning • 'deleteAllByIndex' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:262:12 • experimental_member_use
+warning • 'deleteAllByIndexSync' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:267:12 • experimental_member_use
+warning • 'putByIndex' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:271:12 • experimental_member_use
+warning • 'putByIndexSync' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:275:12 • experimental_member_use
+warning • 'putAllByIndex' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:279:12 • experimental_member_use
+warning • 'putAllByIndexSync' is experimental and could be removed or changed at any time • lib/data/models/local/local_track.g.dart:284:12 • experimental_member_use
+  error • The getter 'surface' isn't defined for the type 'AppTheme' • lib/presentation/features/artist/widgets/artist_widgets.dart:149:72 • undefined_getter
+  error • The getter 'surface' isn't defined for the type 'AppTheme' • lib/presentation/features/collection/view/collection_screen.dart:146:29 • undefined_getter
+  error • The getter 'surface' isn't defined for the type 'AppTheme' • lib/presentation/features/main/view/main_layout.dart:110:39 • undefined_getter
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/onboarding/view/onboarding_screen.dart:71:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/onboarding/view/onboarding_screen.dart:82:69 • deprecated_member_use
+  error • The getter 'background' isn't defined for the type 'AppTheme' • lib/presentation/features/player/view/audio_player_screen.dart:80:26 • undefined_getter
+  error • The getter 'surface' isn't defined for the type 'AppTheme' • lib/presentation/features/player/widgets/player_widgets.dart:53:33 • undefined_getter
+warning • The value of the local variable 'colorScheme' isn't used • lib/presentation/features/profile/view/profile_screen.dart:11:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/profile/widgets/profile_widgets.dart:41:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/profile/widgets/profile_widgets.dart:49:62 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/profile/widgets/profile_widgets.dart:83:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/profile/widgets/profile_widgets.dart:119:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/profile/widgets/profile_widgets.dart:151:50 • deprecated_member_use
+  error • All final variables must be initialized, but 'artists' isn't • lib/presentation/features/search/widgets/search_result_widgets.dart:80:9 • final_not_initialized_constructor
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/search/widgets/search_result_widgets.dart:129:77 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/search/widgets/search_result_widgets.dart:180:85 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/features/search/widgets/search_result_widgets.dart:262:73 • deprecated_member_use
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/widgets/mywave_button.dart:29:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/mywave_button.dart:41:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/mywave_icon_button.dart:34:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/mywave_track_tile.dart:40:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/mywave_track_tile.dart:88:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/mywave_track_tile.dart:95:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:221:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:286:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:338:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:376:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:398:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:400:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:430:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:433:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:447:83 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:448:101 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:467:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:491:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/player_screen.dart:512:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/search_screen.dart:126:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib_bk/screens/search_screen.dart:198:49 • deprecated_member_use
+

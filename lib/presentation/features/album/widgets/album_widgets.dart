@@ -6,6 +6,7 @@ import '../../../../../domain/entities/album.dart';
 import '../../../../../domain/entities/playback_context.dart';
 import '../../../../../domain/entities/track.dart';
 import '../../../widgets/explicit_badge.dart';
+import '../../../widgets/bounceable.dart';
 import '../../player/bloc/audio_player_bloc.dart';
 import '../../player/bloc/audio_player_event.dart';
 
@@ -41,16 +42,23 @@ class AlbumHeader extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 '${album.tracks?.length ?? 0} tracks',
-                style: const TextStyle(color: Colors.white54),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54)),
               ),
             ],
           ),
         ),
         if (album.tracks?.isNotEmpty == true)
-          FloatingActionButton(
-            backgroundColor: AppTheme.tiffanyBlue,
-            onPressed: () => _playAlbum(album, album.tracks!.first),
-            child: const Icon(Icons.play_arrow_rounded, size: 32, color: Colors.white),
+          Bounceable(
+            onTap: () => _playAlbum(album, album.tracks!.first),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: AppTheme.tiffanyBlue,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.play_arrow_rounded, size: 32, color: Colors.white),
+            ),
           ),
       ],
     );
@@ -79,30 +87,42 @@ class AlbumTrackTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Text(
-        '${index + 1}',
-        style: const TextStyle(color: Colors.white54, fontSize: 16),
-      ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              track.title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (track.isExplicit) ...[
-            const SizedBox(width: 8),
-            const ExplicitBadge(),
-          ],
-        ],
-      ),
-      trailing: const Icon(Icons.more_vert, color: Colors.white38),
+    return Bounceable(
       onTap: _play,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 32,
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54), fontSize: 16),
+              ),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      track.title,
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (track.isExplicit) ...[
+                    const SizedBox(width: 8),
+                    const ExplicitBadge(),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
+          ],
+        ),
+      ),
     );
   }
 }

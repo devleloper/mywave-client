@@ -9,21 +9,22 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           children: [
             const SizedBox(height: 48),
             const AvatarCircle(),
             const SizedBox(height: 24),
-            UserNameLabel(),
-            const SizedBox(height: 8),
-            const PremiumBadge(),
+            const Center(child: UserNameLabel()),
+            const SizedBox(height: 12),
+            const Center(child: PremiumBadge()),
             const SizedBox(height: 48),
-            const Divider(color: Colors.white12),
             const DarkModeToggle(),
-            const Divider(color: Colors.white12),
+            const SizedBox(height: 16),
             const AboutTile(),
-            const Divider(color: Colors.white12),
+            const SizedBox(height: 16),
             const SignOutTile(),
+            const SizedBox(height: 120),
           ],
         ),
       ),

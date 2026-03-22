@@ -1,14 +1,18 @@
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/di/injection.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../domain/entities/playback_context.dart';
 import '../../../../../domain/entities/track.dart';
+import '../../../widgets/bounceable.dart';
 import '../../../widgets/explicit_badge.dart';
 import '../../player/bloc/audio_player_bloc.dart';
 import '../../player/bloc/audio_player_event.dart';
+import '../../player/view/audio_player_screen.dart';
 
 class ChartList extends StatelessWidget {
   const ChartList({super.key, required this.tracks});
@@ -17,24 +21,26 @@ class ChartList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => ChartTrackTile(
+    return SliverToBoxAdapter(
+      child: SizedBox(
+        height: 360,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: tracks.length,
+          itemBuilder: (context, index) => ChartCard(
             track: tracks[index],
             index: index,
             queue: tracks,
-          ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.1),
-          childCount: tracks.length,
+          ).animate().fadeIn(delay: (index * 100).ms).scale(begin: const Offset(0.9, 0.9)),
         ),
       ),
     );
   }
 }
 
-class ChartTrackTile extends StatelessWidget {
-  const ChartTrackTile({
+class ChartCard extends StatelessWidget {
+  const ChartCard({
     super.key,
     required this.track,
     required this.index,
@@ -45,7 +51,7 @@ class ChartTrackTile extends StatelessWidget {
   final int index;
   final List<Track> queue;
 
-  void _play() {
+  void _play(BuildContext context) {
     getIt<AudioPlayerBloc>().add(PlayTrackEvent(
       track: track,
       initialQueue: List.from(queue),
@@ -54,106 +60,118 @@ class ChartTrackTile extends StatelessWidget {
         id: 'charts',
       ),
     ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: _play,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Text(
-                '${index + 1}',
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(width: 16),
-              ChartCover(coverUrl: track.album?.coverUrl),
-              const SizedBox(width: 16),
-              Expanded(child: ChartTrackInfo(track: track)),
-              const SizedBox(width: 12),
-              const Icon(Icons.play_circle_fill_rounded, color: Colors.white24, size: 32),
-            ],
-          ),
-        ),
-      ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AudioPlayerScreen(),
     );
   }
-}
 
-class ChartCover extends StatelessWidget {
-  const ChartCover({super.key, required this.coverUrl});
-
-  final String? coverUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: coverUrl != null
-          ? CachedNetworkImage(imageUrl: coverUrl!, width: 56, height: 56, fit: BoxFit.cover)
-          : const ColoredBox(
-              color: Colors.white12,
-              child: SizedBox(
-                width: 56,
-                height: 56,
-                child: Icon(Icons.music_note, color: Colors.white38),
-              ),
-            ),
-    );
+  void _navigateToAlbum(BuildContext context) {
+    if (track.album != null) {
+      context.push('/album/${track.album!.id}');
+    }
   }
-}
-
-class ChartTrackInfo extends StatelessWidget {
-  const ChartTrackInfo({super.key, required this.track});
-
-  final Track track;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Bounceable(
+      onTap: () => _navigateToAlbum(context),
+      child: Container(
+        width: 260,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                track.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: CachedNetworkImage(
+                      imageUrl: track.album?.coverUrl ?? '',
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: colorScheme.surface,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.tiffanyBlue,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: colorScheme.surface,
+                        child: const Icon(Icons.music_note, color: Colors.white24),
+                      ),
+                    ),
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: Bounceable(
+                    onTap: () => _play(context),
+                    child: ClipOval(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            if (track.isExplicit) ...[
-              const SizedBox(width: 8),
-              const ExplicitBadge(),
-            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    track.title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (track.isExplicit) ...[
+                  const SizedBox(width: 8),
+                  const ExplicitBadge(),
+                ],
+              ],
+            ),
+            Text(
+              track.artist?.name ?? 'Unknown Artist',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.tiffanyBlue,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          track.artist?.name ?? 'Unknown Artist',
-          style: const TextStyle(color: AppTheme.tiffanyBlue, fontSize: 14),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+      ),
     );
   }
 }

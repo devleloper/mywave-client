@@ -1,13 +1,19 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../../core/theme/app_theme.dart';
 import '../../../../../domain/entities/album.dart';
 import '../../../../../domain/entities/artist.dart';
+import '../../../../../domain/entities/playback_context.dart';
 import '../../../../../domain/entities/track.dart';
+import '../../../widgets/bounceable.dart';
 import '../../../widgets/explicit_badge.dart';
 import '../../../widgets/section_header.dart';
 import '../../../widgets/track_cover.dart';
+import '../../player/bloc/audio_player_bloc.dart';
+import '../../player/bloc/audio_player_event.dart';
+import '../../player/view/audio_player_screen.dart';
 import '../bloc/search_state.dart';
 
 class SearchLoadedResults extends StatelessWidget {
@@ -18,8 +24,8 @@ class SearchLoadedResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.tracks.isEmpty && state.albums.isEmpty && state.artists.isEmpty) {
-      return const Center(
-        child: Text('No results found.', style: TextStyle(color: Colors.white54)),
+      return Center(
+        child: Text('No results found.', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54))),
       );
     }
 
@@ -41,7 +47,10 @@ class SearchLoadedResults extends StatelessWidget {
         if (state.tracks.isNotEmpty) ...[
           const SectionHeader('Tracks'),
           const SizedBox(height: 12),
-          ...state.tracks.map((track) => SearchTrackTile(track: track)),
+          ...state.tracks.map((track) => SearchTrackTile(
+                track: track,
+                allTracks: state.tracks,
+              )),
         ],
         const SizedBox(height: 100),
       ],
@@ -75,7 +84,7 @@ class AlbumRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 160,
+      height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: albums.length,
@@ -92,30 +101,45 @@ class ArtistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 100,
-      margin: const EdgeInsets.only(right: 16),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: AppTheme.surface,
-            backgroundImage: artist.pictureUrl != null
-                ? CachedNetworkImageProvider(artist.pictureUrl!)
-                : null,
-            child: artist.pictureUrl == null
-                ? const Icon(Icons.person, color: Colors.white38)
-                : null,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            artist.name,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ],
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Bounceable(
+      onTap: () => context.push('/search/artist/${artist.id}'),
+      child: Container(
+        width: 100,
+        margin: const EdgeInsets.only(right: 16),
+        child: Column(
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.surface,
+                image: artist.pictureUrl != null
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(artist.pictureUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: artist.pictureUrl == null
+                  ? Icon(Icons.person_rounded, color: colorScheme.onSurface.withValues(alpha: 0.2))
+                  : null,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              artist.name,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -128,73 +152,116 @@ class AlbumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: album.coverUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: album.coverUrl!,
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  )
-                : Container(
-                    width: 120,
-                    height: 120,
-                    color: AppTheme.surface,
-                    child: const Icon(Icons.album, color: Colors.white38),
-                  ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            album.title,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (album.isExplicit) const ExplicitBadge(),
-        ],
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Bounceable(
+      onTap: () => context.push('/search/album/${album.id}'),
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: album.coverUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: album.coverUrl!,
+                      width: 140,
+                      height: 140,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      width: 140,
+                      height: 140,
+                      color: colorScheme.surface,
+                      child: Icon(Icons.album_rounded, color: colorScheme.onSurface.withValues(alpha: 0.2)),
+                    ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              album.title,
+              style: theme.textTheme.titleSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (album.isExplicit) const ExplicitBadge(),
+          ],
+        ),
       ),
     );
   }
 }
 
 class SearchTrackTile extends StatelessWidget {
-  const SearchTrackTile({super.key, required this.track});
+  const SearchTrackTile({super.key, required this.track, required this.allTracks});
 
   final Track track;
+  final List<Track> allTracks;
+
+  void _play(BuildContext context) {
+    context.read<AudioPlayerBloc>().add(PlayTrackEvent(
+      track: track,
+      initialQueue: List.from(allTracks),
+      context: PlaybackContext(
+        type: PlaybackContextType.collection,
+        id: 'search_${track.id}',
+      ),
+    ));
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AudioPlayerScreen(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: TrackCover(url: track.album?.coverUrl, size: 48),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              track.title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Bounceable(
+      onTap: () => _play(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            TrackCover(url: track.album?.coverUrl, size: 56),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          track.title,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (track.isExplicit) ...[
+                        const SizedBox(width: 8),
+                        const ExplicitBadge(),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    track.artist?.name ?? 'Unknown',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (track.isExplicit) ...[
-            const SizedBox(width: 8),
-            const ExplicitBadge(),
+            Icon(Icons.play_arrow_rounded, color: colorScheme.onSurface.withValues(alpha: 0.3)),
           ],
-        ],
+        ),
       ),
-      subtitle: Text(
-        track.artist?.name ?? 'Unknown',
-        style: const TextStyle(color: Colors.white54),
-      ),
-      trailing: const Icon(Icons.more_vert, color: Colors.white38),
     );
   }
 }

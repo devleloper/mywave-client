@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../presentation/core/bloc/theme_cubit.dart';
 import 'injection.config.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -12,4 +13,8 @@ final GetIt getIt = GetIt.instance;
 )
 Future<void> configureDependencies() async {
   await getIt.init();
+  // Manually register ThemeCubit as it's a core requirement for theme switching
+  if (!getIt.isRegistered<ThemeCubit>()) {
+    getIt.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
+  }
 }

@@ -10,6 +10,7 @@ import '../../../../domain/entities/artist.dart';
 import '../../../../domain/entities/album.dart';
 import '../../player/bloc/audio_player_bloc.dart';
 import '../../player/bloc/audio_player_event.dart';
+import '../../../widgets/bounceable.dart';
 import '../bloc/collection_bloc.dart';
 import '../bloc/collection_event.dart';
 import '../bloc/collection_state.dart';
@@ -32,7 +33,7 @@ class CollectionScreen extends StatelessWidget {
                   'Your Collection',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                 ),
               ),
@@ -54,11 +55,11 @@ class CollectionScreen extends StatelessWidget {
                       final tracks = state.savedTracks;
 
                       if (tracks.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
                             'No downloaded tracks yet.\nStart saving your favorites!',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white54, fontSize: 16),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54), fontSize: 16),
                           ),
                         );
                       }
@@ -129,7 +130,7 @@ class _CollectionTrackTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
+      child: Bounceable(
         onTap: () {
           getIt<AudioPlayerBloc>().add(PlayTrackEvent(
             track: track,
@@ -140,10 +141,9 @@ class _CollectionTrackTile extends StatelessWidget {
             ),
           ));
         },
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
+        child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.all(12),
@@ -161,8 +161,8 @@ class _CollectionTrackTile extends StatelessWidget {
                     : Container(
                         width: 56,
                         height: 56,
-                        color: Colors.white12,
-                        child: const Icon(Icons.music_note, color: Colors.white38),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+                        child: Icon(Icons.music_note, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
                       ),
               ),
               const SizedBox(width: 16),
@@ -172,8 +172,8 @@ class _CollectionTrackTile extends StatelessWidget {
                   children: [
                     Text(
                       track.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),

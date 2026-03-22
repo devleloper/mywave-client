@@ -50,3 +50,8 @@ class TrackChangedInternalEvent extends AudioPlayerEvent {
   final Track? track;
   const TrackChangedInternalEvent(this.track);
 }
+
+class IsPlayingChangedInternalEvent extends AudioPlayerEvent {
+  final bool isPlaying;
+  const IsPlayingChangedInternalEvent(this.isPlaying);
+}

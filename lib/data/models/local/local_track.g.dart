@@ -1,3 +1,4 @@
+// ignore_for_file: experimental_member_use
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'local_track.dart';

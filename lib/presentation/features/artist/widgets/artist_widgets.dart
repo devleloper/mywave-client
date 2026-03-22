@@ -9,6 +9,7 @@ import '../../../../../domain/entities/playback_context.dart';
 import '../../../../../domain/entities/track.dart';
 import '../../../widgets/explicit_badge.dart';
 import '../../../widgets/track_cover.dart';
+import '../../../widgets/bounceable.dart';
 import '../../player/bloc/audio_player_bloc.dart';
 import '../../player/bloc/audio_player_event.dart';
 import '../bloc/artist_state.dart';
@@ -36,14 +37,21 @@ class ArtistHeader extends StatelessWidget {
         Expanded(
           child: Text(
             '${state.artist.fans ?? 0} fans',
-            style: const TextStyle(color: Colors.white54, fontSize: 16),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54), fontSize: 16),
           ),
         ),
         if (state.topTracks.isNotEmpty)
-          FloatingActionButton(
-            backgroundColor: AppTheme.tiffanyBlue,
-            onPressed: _play,
-            child: const Icon(Icons.play_arrow_rounded, size: 32, color: Colors.white),
+          Bounceable(
+            onTap: _play,
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: AppTheme.tiffanyBlue,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.play_arrow_rounded, size: 32, color: Colors.white),
+            ),
           ),
       ],
     );
@@ -73,32 +81,48 @@ class ArtistTrackTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: TrackCover(url: track.album?.coverUrl, size: 48, borderRadius: 4),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              track.title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (track.isExplicit) ...[
-            const SizedBox(width: 8),
-            const ExplicitBadge(),
-          ],
-        ],
-      ),
-      subtitle: Text(
-        track.album?.title ?? '',
-        style: const TextStyle(color: Colors.white54),
-        maxLines: 1,
-      ),
-      trailing: const Icon(Icons.more_vert, color: Colors.white38),
+    return Bounceable(
       onTap: _play,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Row(
+          children: [
+            TrackCover(url: track.album?.coverUrl, size: 48, borderRadius: 4),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          track.title,
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (track.isExplicit) ...[
+                        const SizedBox(width: 8),
+                        const ExplicitBadge(),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    track.album?.title ?? '',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54)),
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -129,7 +153,7 @@ class ArtistAlbumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Bounceable(
       onTap: () => context.push('/album/${album.id}'),
       child: Container(
         width: 140,
@@ -146,18 +170,18 @@ class ArtistAlbumCard extends StatelessWidget {
                       height: 140,
                       fit: BoxFit.cover,
                     )
-                  : Container(width: 140, height: 140, color: AppTheme.surface),
+                  : Container(width: 140, height: 140, color: Theme.of(context).colorScheme.surface),
             ),
             const SizedBox(height: 8),
             Text(
               album.title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               album.releaseDate?.split('-').first ?? '',
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54), fontSize: 12),
             ),
           ],
         ),
