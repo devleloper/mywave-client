@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../domain/entities/playback_context.dart';
 import '../../../../domain/entities/track.dart';
+import '../../../../domain/entities/lyrics.dart';
 
 class AudioPlayerState extends Equatable {
   final Track? currentTrack;
@@ -13,6 +14,9 @@ class AudioPlayerState extends Equatable {
   final List<Track> queue;
   final PlaybackContext? context;
   final DateTime? lastManualPlay;
+  final Lyrics? currentLyrics;
+  final bool isLoadingLyrics;
+  final bool isDebugSimulationActive;
 
   const AudioPlayerState({
     this.currentTrack,
@@ -24,6 +28,9 @@ class AudioPlayerState extends Equatable {
     this.queue = const [],
     this.context,
     this.lastManualPlay,
+    this.currentLyrics,
+    this.isLoadingLyrics = false,
+    this.isDebugSimulationActive = false,
   });
 
   AudioPlayerState copyWith({
@@ -36,6 +43,9 @@ class AudioPlayerState extends Equatable {
     List<Track>? queue,
     PlaybackContext? context,
     DateTime? lastManualPlay,
+    Lyrics? currentLyrics,
+    bool? isLoadingLyrics,
+    bool? isDebugSimulationActive,
   }) {
     return AudioPlayerState(
       currentTrack: currentTrack ?? this.currentTrack,
@@ -47,6 +57,10 @@ class AudioPlayerState extends Equatable {
       queue: queue ?? this.queue,
       context: context ?? this.context,
       lastManualPlay: lastManualPlay ?? this.lastManualPlay,
+      currentLyrics:
+          currentLyrics == null && isLoadingLyrics == null ? this.currentLyrics : currentLyrics,
+      isLoadingLyrics: isLoadingLyrics ?? this.isLoadingLyrics,
+      isDebugSimulationActive: isDebugSimulationActive ?? this.isDebugSimulationActive,
     );
   }
 
@@ -61,5 +75,8 @@ class AudioPlayerState extends Equatable {
         queue,
         context,
         lastManualPlay,
+        currentLyrics,
+        isLoadingLyrics,
+        isDebugSimulationActive,
       ];
 }

@@ -59,7 +59,7 @@ extension GetItInjectableX on _i1.GetIt {
     gh.lazySingleton<_i10.TrackStorage>(
         () => _i10.TrackStorageImpl(gh<_i9.Isar>()));
     gh.factory<_i11.AudioPlayerBloc>(
-        () => _i11.AudioPlayerBloc(gh<_i4.AudioPlayerRepository>()));
+        () => _i11.AudioPlayerBloc(gh<_i4.AudioPlayerRepository>(), gh<_i12.CatalogRepository>()));
     gh.lazySingleton<_i12.CatalogRepository>(
         () => _i13.CatalogRepositoryImpl(gh<_i8.Dio>()));
     gh.factory<_i14.CollectionBloc>(

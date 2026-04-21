@@ -5,6 +5,7 @@ import '../../../../domain/entities/album.dart';
 import '../../../../domain/entities/artist.dart';
 import '../../../../domain/entities/track.dart';
 import '../../../../domain/entities/search_result.dart';
+import '../../../../domain/entities/lyrics.dart';
 import '../../../../domain/repositories/catalog_repository.dart';
 
 @LazySingleton(as: CatalogRepository)
@@ -115,6 +116,29 @@ class CatalogRepositoryImpl implements CatalogRepository {
   Future<List<Track>> getCharts() async {
     final response = await _dio.get('chart');
     return _mapTracks(response.data['tracks']['data'] as List);
+  }
+
+  @override
+  Future<Lyrics?> getLyrics(Track track) async {
+    try {
+      final response = await _dio.get(
+        'lyrics/${track.id}',
+        queryParameters: {
+          if (track.title.isNotEmpty) 'track_name': track.title,
+          if (track.artist?.name != null) 'artist_name': track.artist!.name,
+          if (track.album?.title != null) 'album_name': track.album!.title,
+          if (track.durationSeconds > 0) 'duration': track.durationSeconds,
+        },
+      );
+      
+      final data = response.data;
+      if (data != null && (data['synced'] != null || data['plain'] != null)) {
+        return Lyrics.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
   List<Track> _mapTracks(List<dynamic> data) {

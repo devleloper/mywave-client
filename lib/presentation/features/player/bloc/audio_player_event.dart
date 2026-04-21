@@ -55,3 +55,15 @@ class IsPlayingChangedInternalEvent extends AudioPlayerEvent {
   final bool isPlaying;
   const IsPlayingChangedInternalEvent(this.isPlaying);
 }
+
+class PositionChangedInternalEvent extends AudioPlayerEvent {
+  final Duration position;
+  const PositionChangedInternalEvent(this.position);
+}
+
+class DurationChangedInternalEvent extends AudioPlayerEvent {
+  final Duration duration;
+  const DurationChangedInternalEvent(this.duration);
+}
+
+class ToggleDebugSimulationEvent extends AudioPlayerEvent {}

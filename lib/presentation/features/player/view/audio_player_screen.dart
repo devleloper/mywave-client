@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -8,8 +10,10 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/services/player_transition_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../bloc/audio_player_bloc.dart';
+import '../bloc/audio_player_event.dart';
 import '../bloc/audio_player_state.dart';
 import '../widgets/player_widgets.dart';
+import '../widgets/lyrics_view_widget.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
   final Color? dominantColor;
@@ -26,6 +30,27 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
   Color? _dominantColor;
   late final AnimationController _pulseController;
   String _lastCoverUrl = '';
+
+  bool _isLyricsMode = false;
+  bool _isControlsVisible = true;
+  Timer? _inactivityTimer;
+
+  void _resetInactivityTimer() {
+    if (mounted) setState(() => _isControlsVisible = true);
+    _inactivityTimer?.cancel();
+    if (_isLyricsMode) {
+      _inactivityTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) setState(() => _isControlsVisible = false);
+      });
+    }
+  }
+
+  void _toggleLyricsMode() {
+    setState(() {
+      _isLyricsMode = !_isLyricsMode;
+      _resetInactivityTimer();
+    });
+  }
 
   @override
   void initState() {
@@ -78,6 +103,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
         widget.routeAnimation ?? ModalRoute.of(context)?.animation;
     routeAnimation?.removeListener(_onAnimationProgressChanged);
     _pulseController.dispose();
+    _inactivityTimer?.cancel();
     super.dispose();
   }
 
@@ -366,14 +392,90 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                   0.95,
                                   curve: Curves.easeOutSine,
                                 ).transform(routeAnimation.value);
+                          final dy = Curves.easeInOutCubic.transform(
+                            routeAnimation.value,
+                          );
                           return Opacity(
                             opacity: opacity,
-                            child: const Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                PlayerDragIndicatorWidget(),
-                                PlayerTopBarWidget(),
-                              ],
+                            child: Transform.translate(
+                              offset: Offset(
+                                0,
+                                20 * (1 - dy),
+                              ), // Slide up 20px when entering route
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    height: 32,
+                                    child: Stack(
+                                      children: [
+                                        const Positioned.fill(
+                                          child: Align(
+                                            alignment: Alignment.center,
+                                            child: PlayerDragIndicatorWidget(),
+                                          ),
+                                        ),
+                                        if (kDebugMode)
+                                          Positioned(
+                                            right: 0,
+                                            bottom: 0,
+                                            top: 0,
+                                            child: IconButton(
+                                              icon: Icon(
+                                                state.isDebugSimulationActive
+                                                    ? Icons.bug_report
+                                                    : Icons.bug_report_outlined,
+                                                color:
+                                                    state
+                                                        .isDebugSimulationActive
+                                                    ? Colors.greenAccent
+                                                    : Colors.white30,
+                                              ),
+                                              onPressed: () {
+                                                context
+                                                    .read<AudioPlayerBloc>()
+                                                    .add(
+                                                      ToggleDebugSimulationEvent(),
+                                                    );
+                                              },
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  ClipRect(
+                                    child: AnimatedAlign(
+                                      duration: const Duration(
+                                        milliseconds: 500,
+                                      ),
+                                      curve: Curves.easeInOutCubic,
+                                      alignment: Alignment.topCenter,
+                                      heightFactor: _isLyricsMode ? 0.0 : 1.0,
+                                      child: AnimatedSlide(
+                                        offset: _isLyricsMode
+                                            ? const Offset(0, 1.0)
+                                            : Offset.zero,
+                                        duration: const Duration(
+                                          milliseconds: 500,
+                                        ),
+                                        curve: Curves.easeInOutCubic,
+                                        child: AnimatedOpacity(
+                                          duration: const Duration(
+                                            milliseconds: 400,
+                                          ),
+                                          opacity: _isLyricsMode ? 0.0 : 1.0,
+                                          child: const Padding(
+                                            padding: EdgeInsets.only(
+                                              bottom: 8.0,
+                                            ),
+                                            child: PlayerTopBarWidget(),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -408,64 +510,288 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                 MediaQuery.orientationOf(context) ==
                                 Orientation.landscape;
 
+                            final albumArtWidget = AlbumArtWidget(
+                              track: state.currentTrack!,
+                              dominantColor:
+                                  _dominantColor ?? Colors.transparent,
+                              pulseController: _pulseController,
+                              routeOpacity: opacity,
+                              customSize: _isLyricsMode ? 46.0 : null,
+                              customRadius: _isLyricsMode ? 10.0 : null,
+                            );
+
                             final albumArt = state.currentTrack == null
                                 ? const SizedBox.shrink()
-                                : AlbumArtWidget(
-                                    track: state.currentTrack!,
-                                    dominantColor:
-                                        _dominantColor ?? Colors.transparent,
-                                    pulseController: _pulseController,
-                                    routeOpacity: opacity,
+                                : AnimatedAlign(
+                                    duration: const Duration(milliseconds: 500),
+                                    curve: Curves.easeInOutCubic,
+                                    alignment: _isLyricsMode
+                                        ? Alignment.topLeft
+                                        : Alignment.center,
+                                    child: albumArtWidget,
+                                  );
+
+                            final miniTrackInfo = state.currentTrack == null
+                                ? const SizedBox.shrink()
+                                : Align(
+                                    alignment: Alignment.topLeft,
+                                    child: AnimatedSlide(
+                                      offset: _isLyricsMode
+                                          ? Offset.zero
+                                          : const Offset(0, 1.0),
+                                      duration: const Duration(
+                                        milliseconds: 500,
+                                      ),
+                                      curve: Curves.easeInOutCubic,
+                                      child: AnimatedOpacity(
+                                        duration: const Duration(
+                                          milliseconds: 400,
+                                        ),
+                                        opacity: _isLyricsMode ? 1.0 : 0.0,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 60.0,
+                                            right:
+                                                24.0, // Space for the like button
+                                          ),
+                                          child: TrackInfoWidget(
+                                            track: state.currentTrack,
+                                            isMiniMode: true,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   );
 
                             final controls = Transform.translate(
                               offset: Offset(0, 40 * (1 - dy)),
-                              child: Opacity(
-                                opacity: opacity,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    TrackInfoWidget(track: state.currentTrack),
-                                    SizedBox(height: isLandscape ? 16 : 24),
-                                    ProgressBarWidget(
-                                      position: state.position,
-                                      duration: state.duration,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Positioned(
+                                    top: -200,
+                                    left: -50,
+                                    right: -50,
+                                    bottom: -50,
+                                    child: AnimatedSlide(
+                                      offset: !_isLyricsMode
+                                          ? const Offset(0, 1.0)
+                                          : (!_isControlsVisible
+                                                ? const Offset(0, 1.2)
+                                                : Offset.zero),
+                                      duration: const Duration(
+                                        milliseconds: 600,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      child: IgnorePointer(
+                                        child: ShaderMask(
+                                          shaderCallback: (Rect bounds) {
+                                            return const LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.white,
+                                              ],
+                                              stops: [0.0, 0.4],
+                                            ).createShader(bounds);
+                                          },
+                                          blendMode: BlendMode.dstIn,
+                                          child: ClipRect(
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(
+                                                sigmaX: 24.0,
+                                                sigmaY: 24.0,
+                                              ),
+                                              child: ColoredBox(
+                                                color: Color.lerp(
+                                                  _dominantColor ??
+                                                      Colors.black,
+                                                  Colors.black,
+                                                  0.5,
+                                                )!.withValues(alpha: 0.9),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    SizedBox(height: isLandscape ? 24 : 32),
-                                    ControlsWidget(
-                                      isPlaying: isPlaying,
-                                      isShuffle: state.isShuffleEnabled,
-                                      isRepeat: state.isRepeatEnabled,
-                                      dominantColor:
-                                          _dominantColor ??
-                                          AppTheme.tiffanyBlue,
+                                  ),
+                                  Opacity(
+                                    opacity: opacity,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        ClipRect(
+                                          child: AnimatedAlign(
+                                            duration: const Duration(
+                                              milliseconds: 500,
+                                            ),
+                                            curve: Curves.easeInOutCubic,
+                                            alignment: Alignment.topCenter,
+                                            heightFactor: _isLyricsMode
+                                                ? 0.0
+                                                : 1.0,
+                                            child: AnimatedSlide(
+                                              offset: _isLyricsMode
+                                                  ? const Offset(0, 1.0)
+                                                  : Offset.zero,
+                                              duration: const Duration(
+                                                milliseconds: 500,
+                                              ),
+                                              curve: Curves.easeInOutCubic,
+                                              child: AnimatedOpacity(
+                                                duration: const Duration(
+                                                  milliseconds: 400,
+                                                ),
+                                                opacity: _isLyricsMode
+                                                    ? 0.0
+                                                    : 1.0,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.only(
+                                                    bottom: 24.0,
+                                                  ), // Padding replaces the SizedBox below
+                                                  child: TrackInfoWidget(
+                                                    track: state.currentTrack,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        if (isLandscape)
+                                          const SizedBox(height: 16),
+                                        AnimatedSlide(
+                                          offset:
+                                              (_isLyricsMode &&
+                                                  !_isControlsVisible)
+                                              ? const Offset(0, 8.0)
+                                              : Offset.zero,
+                                          duration: const Duration(
+                                            milliseconds: 500,
+                                          ), // Delayed compared to controls
+                                          curve: Curves.easeOutCubic,
+                                          child: ProgressBarWidget(
+                                            position: state.position,
+                                            duration: state.duration,
+                                          ),
+                                        ),
+                                        SizedBox(height: isLandscape ? 24 : 32),
+                                        AnimatedSlide(
+                                          offset:
+                                              (_isLyricsMode &&
+                                                  !_isControlsVisible)
+                                              ? const Offset(0, 2.0)
+                                              : Offset.zero,
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ), // Appears first
+                                          curve: Curves.easeOutCubic,
+                                          child: ControlsWidget(
+                                            isPlaying: isPlaying,
+                                            isShuffle: state.isShuffleEnabled,
+                                            isRepeat: state.isRepeatEnabled,
+                                            dominantColor:
+                                                _dominantColor ??
+                                                AppTheme.tiffanyBlue,
+                                            hasLyrics:
+                                                state.currentLyrics != null,
+                                            isLoadingLyrics:
+                                                state.isLoadingLyrics,
+                                            onLyricsTapped: _toggleLyricsMode,
+                                          ),
+                                        ),
+                                        SizedBox(height: isLandscape ? 16 : 48),
+                                      ],
                                     ),
-                                    SizedBox(height: isLandscape ? 16 : 48),
-                                  ],
-                                ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            final lyricsView = Positioned.fill(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(
+                                  milliseconds: 800,
+                                ), // Appears longer
+                                reverseDuration: const Duration(
+                                  milliseconds: 300,
+                                ), // Leaves faster
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                transitionBuilder:
+                                    (
+                                      Widget child,
+                                      Animation<double> animation,
+                                    ) {
+                                      return FadeTransition(
+                                        opacity: animation,
+                                        child: ScaleTransition(
+                                          scale: Tween<double>(
+                                            begin: 0.85,
+                                            end: 1.0,
+                                          ).animate(animation),
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                child:
+                                    (_isLyricsMode &&
+                                        state.currentLyrics != null)
+                                    ? LyricsViewWidget(
+                                        key: const ValueKey('lyrics'),
+                                        lyrics: state.currentLyrics!,
+                                        position: state.position,
+                                      )
+                                    : const SizedBox.shrink(
+                                        key: ValueKey('empty_lyrics'),
+                                      ),
                               ),
                             );
 
                             if (isLandscape) {
-                              return Row(
-                                children: [
-                                  Expanded(child: Center(child: albumArt)),
-                                  const SizedBox(width: 32),
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      child: controls,
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _resetInactivityTimer,
+                                child: Stack(
+                                  children: [
+                                    lyricsView,
+                                    Row(
+                                      children: [
+                                        Expanded(child: albumArt),
+                                        const SizedBox(width: 32),
+                                        Expanded(
+                                          child: SingleChildScrollView(
+                                            child: controls,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               );
                             }
 
-                            return Column(
-                              children: [
-                                Expanded(child: Center(child: albumArt)),
-                                controls,
-                              ],
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _resetInactivityTimer,
+                              child: Stack(
+                                children: [
+                                  lyricsView,
+                                  Column(
+                                    children: [
+                                      Expanded(
+                                        child: Stack(
+                                          children: [albumArt, miniTrackInfo],
+                                        ),
+                                      ),
+                                      controls,
+                                    ],
+                                  ),
+                                ],
+                              ),
                             );
                           },
                         ),

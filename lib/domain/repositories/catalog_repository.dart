@@ -2,6 +2,7 @@ import '../entities/album.dart';
 import '../entities/artist.dart';
 import '../entities/track.dart';
 import '../entities/search_result.dart';
+import '../entities/lyrics.dart';
 
 abstract class CatalogRepository {
   Future<SearchResult> search(String query);
@@ -13,4 +14,6 @@ abstract class CatalogRepository {
   Future<List<Album>> getArtistAlbums(String providerId);
 
   Future<List<Track>> getCharts();
+
+  Future<Lyrics?> getLyrics(Track track);
 }

@@ -9,6 +9,7 @@ import '../../../widgets/bounceable.dart';
 import '../../../widgets/explicit_badge.dart';
 import '../bloc/audio_player_bloc.dart';
 import '../bloc/audio_player_event.dart';
+import '../../../widgets/marquee_text.dart';
 
 class _SquareRectTween extends RectTween {
   _SquareRectTween({super.begin, super.end});
@@ -56,56 +57,83 @@ class AlbumArtWidget extends StatelessWidget {
     required this.dominantColor,
     required this.pulseController,
     this.routeOpacity = 1.0,
+    this.customSize,
+    this.customRadius,
   });
 
   final Track track;
   final Color dominantColor;
   final AnimationController pulseController;
   final double routeOpacity;
+  final double? customSize;
+  final double? customRadius;
 
   @override
   Widget build(BuildContext context) {
     final coverUrl = track.album?.coverUrl;
-    final size = MediaQuery.sizeOf(context).shortestSide * 0.85;
+    final size = customSize ?? MediaQuery.sizeOf(context).shortestSide * 0.85;
+    final radius = customRadius ?? 24.0;
 
-    return AnimatedBuilder(
-      animation: pulseController,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: dominantColor.withValues(
-                  alpha: (0.5 + (pulseController.value * 0.5)) * routeOpacity,
-                ),
-                blurRadius: 50 + (pulseController.value * 30),
-                spreadRadius: 8 + (pulseController.value * 15),
-              ),
-            ],
-          ),
-          child: Hero(
-            tag: 'player_cover_${track.id}',
-            createRectTween: (begin, end) => _SquareRectTween(begin: begin, end: end),
-            flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
-              return _getAlbumFlightShuttleBuilder(
-                flightContext, animation, flightDirection, fromHeroContext, toHeroContext,
-                track.album?.coverUrl != null
-                    ? CachedNetworkImage(imageUrl: track.album!.coverUrl!, fit: BoxFit.cover)
-                    : ColoredBox(
-                        color: Theme.of(flightContext).colorScheme.surface,
-                        child: const Center(child: Icon(Icons.music_note, size: 64, color: Colors.white38)),
-                      ),
-              );
-            },
-            child: child!,
-          ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: size),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
+      builder: (context, animatedSize, child) {
+        return TweenAnimationBuilder<double>(
+          tween: Tween<double>(end: radius),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutCubic,
+          builder: (context, animatedRadius, child) {
+            return AnimatedBuilder(
+              animation: pulseController,
+              builder: (context, child) {
+                return Container(
+                  clipBehavior: Clip.antiAlias,
+                  width: animatedSize,
+                  height: animatedSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(animatedRadius),
+                    boxShadow: customSize != null
+                        ? null // No huge shadow in mini lyrics mode
+                        : [
+                            BoxShadow(
+                              color: dominantColor.withValues(
+                                alpha: (0.5 + (pulseController.value * 0.5)) * routeOpacity,
+                              ),
+                              blurRadius: 50 + (pulseController.value * 30),
+                              spreadRadius: 8 + (pulseController.value * 15),
+                            ),
+                          ],
+                  ),
+                  child: child,
+                );
+              },
+              child: child,
+            );
+          },
+          child: child,
         );
       },
-      child: AspectRatio(
-        aspectRatio: 1.0,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+      child: Hero(
+        tag: 'player_cover_${track.id}',
+        createRectTween: (begin, end) => _SquareRectTween(begin: begin, end: end),
+        flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+          return _getAlbumFlightShuttleBuilder(
+            flightContext,
+            animation,
+            flightDirection,
+            fromHeroContext,
+            toHeroContext,
+            track.album?.coverUrl != null
+                ? CachedNetworkImage(imageUrl: track.album!.coverUrl!, fit: BoxFit.cover)
+                : ColoredBox(
+                    color: Theme.of(flightContext).colorScheme.surface,
+                    child: const Center(child: Icon(Icons.music_note, size: 64, color: Colors.white38)),
+                  ),
+          );
+        },
+        child: AspectRatio(
+          aspectRatio: 1.0,
           child: coverUrl != null
               ? CachedNetworkImage(imageUrl: coverUrl, width: size, height: size, fit: BoxFit.cover)
               : ColoredBox(
@@ -122,61 +150,114 @@ class AlbumArtWidget extends StatelessWidget {
   }
 }
 
-class TrackInfoWidget extends StatelessWidget {
-  const TrackInfoWidget({super.key, required this.track});
+class TrackInfoWidget extends StatefulWidget {
+  const TrackInfoWidget({super.key, required this.track, this.isMiniMode = false});
 
   final Track? track;
+  final bool isMiniMode;
+
+  @override
+  State<TrackInfoWidget> createState() => _TrackInfoWidgetState();
+}
+
+class _TrackInfoWidgetState extends State<TrackInfoWidget> {
+  double _direction = 1.0;
+
+  @override
+  void didUpdateWidget(covariant TrackInfoWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.track?.id != widget.track?.id) {
+      final queue = getIt<AudioPlayerBloc>().state.queue;
+      final oldIndex = queue.indexWhere((t) => t.id == oldWidget.track?.id);
+      final newIndex = queue.indexWhere((t) => t.id == widget.track?.id);
+
+      if (oldIndex != -1 && newIndex != -1) {
+        _direction = newIndex > oldIndex ? 1.0 : -1.0;
+      } else {
+        _direction = 1.0;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: widget.isMiniMode ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: widget.isMiniMode ? CrossAxisAlignment.center : CrossAxisAlignment.end,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                track?.title ?? 'Not Playing',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
+        Flexible(
+          fit: widget.isMiniMode ? FlexFit.loose : FlexFit.tight,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            reverseDuration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final inAnimation = child.key == ValueKey(widget.track?.id ?? 'none');
+              final sign = inAnimation ? _direction : -_direction;
+              
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(sign * 0.3, 0.0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  if (track?.isExplicit == true) ...[
-                    const ExplicitBadge(),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Text(
-                      track?.artist?.name ?? '-',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+              );
+            },
+            layoutBuilder: (currentChild, previousChildren) {
+              return Stack(
+                alignment: Alignment.centerLeft,
+                children: <Widget>[
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
                 ],
-              ),
-            ],
+              );
+            },
+            child: Column(
+              key: ValueKey(widget.track?.id ?? 'none'),
+              mainAxisSize: MainAxisSize.min, // Prevents taking infinite height and moving the like button
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MarqueeText(
+                  text: widget.track?.title ?? 'Not Playing',
+                  style: TextStyle(
+                    fontSize: widget.isMiniMode ? 18 : 32,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                SizedBox(height: widget.isMiniMode ? 0 : 4),
+                Row(
+                  children: [
+                    if (widget.track?.isExplicit == true) ...[
+                      const ExplicitBadge(),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: MarqueeText(
+                        text: widget.track?.artist?.name ?? '-',
+                        style: TextStyle(
+                          fontSize: widget.isMiniMode ? 13 : 20,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         Bounceable(
           onTap: () {},
-          child: const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Icon(Icons.favorite_border_rounded, color: Colors.white, size: 32),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Icon(Icons.favorite_border_rounded, color: Colors.white, size: widget.isMiniMode ? 24 : 32),
           ),
         ),
       ],
@@ -288,12 +369,18 @@ class ControlsWidget extends StatelessWidget {
     required this.isShuffle,
     required this.isRepeat,
     required this.dominantColor,
+    required this.hasLyrics,
+    required this.isLoadingLyrics,
+    this.onLyricsTapped,
   });
 
   final bool isPlaying;
   final bool isShuffle;
   final bool isRepeat;
   final Color dominantColor;
+  final bool hasLyrics;
+  final bool isLoadingLyrics;
+  final VoidCallback? onLyricsTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -327,12 +414,18 @@ class ControlsWidget extends StatelessWidget {
           ),
         ),
         Bounceable(
-          onTap: () {}, // Lyrics to be implemented later
+          onTap: () {
+            if (hasLyrics && !isLoadingLyrics) {
+              onLyricsTapped?.call();
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Icon(
               Icons.lyrics_rounded,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Colors.white.withValues(
+                alpha: isLoadingLyrics ? 0.5 : (hasLyrics ? 1.0 : 0.2),
+              ),
               size: 28,
             ),
           ),
@@ -404,13 +497,7 @@ class PlayerTopBarWidget extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        Bounceable(
-          onTap: () {},
-          child: const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Icon(Icons.queue_music_rounded, color: Colors.white, size: 28),
-          ),
-        ),
+        const SizedBox(width: 52), // Replaced icon to keep it balanced
       ],
     );
   }
