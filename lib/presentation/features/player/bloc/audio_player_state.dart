@@ -12,6 +12,7 @@ class AudioPlayerState extends Equatable {
   final Duration duration;
   final List<Track> queue;
   final PlaybackContext? context;
+  final DateTime? lastManualPlay;
 
   const AudioPlayerState({
     this.currentTrack,
@@ -22,6 +23,7 @@ class AudioPlayerState extends Equatable {
     this.duration = Duration.zero,
     this.queue = const [],
     this.context,
+    this.lastManualPlay,
   });
 
   AudioPlayerState copyWith({
@@ -33,6 +35,7 @@ class AudioPlayerState extends Equatable {
     Duration? duration,
     List<Track>? queue,
     PlaybackContext? context,
+    DateTime? lastManualPlay,
   }) {
     return AudioPlayerState(
       currentTrack: currentTrack ?? this.currentTrack,
@@ -43,6 +46,7 @@ class AudioPlayerState extends Equatable {
       duration: duration ?? this.duration,
       queue: queue ?? this.queue,
       context: context ?? this.context,
+      lastManualPlay: lastManualPlay ?? this.lastManualPlay,
     );
   }
 
@@ -56,5 +60,6 @@ class AudioPlayerState extends Equatable {
         duration,
         queue,
         context,
+        lastManualPlay,
       ];
 }

@@ -6,11 +6,27 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/core/bloc/theme_cubit.dart';
 import 'presentation/features/player/bloc/audio_player_bloc.dart';
+import 'core/services/player_transition_service.dart';
+import 'package:screen_corner_radius/screen_corner_radius.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await configureDependencies();
+
+  // Detect and cache screen corner radius with safety fallback
+  try {
+    final ScreenRadius? radius = await ScreenCornerRadius.get();
+    if (radius != null) {
+      getIt<PlayerTransitionService>().setCornerRadius(radius.topLeft);
+    } else {
+      getIt<PlayerTransitionService>().setCornerRadius(38.0);
+    }
+  } catch (e) {
+    // Fallback for web, desktop or if plugin is not linked yet
+    getIt<PlayerTransitionService>().setCornerRadius(38.0);
+    debugPrint('ScreenCornerRadius plugin not available: $e');
+  }
 
   runApp(const MyWaveApp());
 }

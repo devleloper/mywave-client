@@ -4,13 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
 import 'package:palette_generator/palette_generator.dart';
-
 import '../../../../core/di/injection.dart';
+import '../../../../core/services/player_transition_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../widgets/bounceable.dart';
 import '../../player/bloc/audio_player_bloc.dart';
+import '../../../widgets/bounceable.dart';
 import '../../player/bloc/audio_player_event.dart';
 import '../../player/bloc/audio_player_state.dart';
 import '../../player/view/audio_player_screen.dart';
@@ -39,7 +38,10 @@ Widget _getAlbumFlightShuttleBuilder(
   return AnimatedBuilder(
     animation: animation,
     builder: (context, child) {
-      final radius = 10.0 + 30.0 * animation.value;
+      // Use the same smooth ease curve for the flight
+      final t = Curves.easeInOutCubic.transform(animation.value);
+      // Interpolate radius from 10.0 (miniplayer) to 24.0 (full screen player)
+      final radius = 10.0 + 14.0 * t;
       return AspectRatio(
         aspectRatio: 1.0,
         child: ClipRRect(
@@ -54,10 +56,7 @@ Widget _getAlbumFlightShuttleBuilder(
 class MainLayout extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
-  const MainLayout({
-    super.key,
-    required this.navigationShell,
-  });
+  const MainLayout({super.key, required this.navigationShell});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -66,6 +65,31 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   Color? _dominantColor;
   String _lastCoverUrl = '';
+
+  bool _isPlayerOpen = false;
+
+  Future<void> _openAudioPlayer(BuildContext context) async {
+    setState(() => _isPlayerOpen = true);
+    await Navigator.of(context, rootNavigator: true).push(
+      PageRouteBuilder(
+        opaque: false,
+        transitionDuration: const Duration(milliseconds: 600),
+        reverseTransitionDuration: const Duration(milliseconds: 600),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return AudioPlayerScreen(
+            dominantColor: _dominantColor ?? AppTheme.tiffanyBlue,
+            routeAnimation: animation,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return child;
+        },
+      ),
+    );
+    if (mounted) {
+      setState(() => _isPlayerOpen = false);
+    }
+  }
 
   Future<void> _extractColor(String coverUrl) async {
     if (coverUrl.isEmpty || coverUrl == _lastCoverUrl) return;
@@ -89,216 +113,408 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final transitionService = getIt<PlayerTransitionService>();
+
     return Scaffold(
-      body: Stack(
-        children: [
-          widget.navigationShell, // The current branch view
-          // Custom Liquid Glass Bottom Navigation
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 32,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(40),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _NavItem(
-                        icon: Icons.home_rounded,
-                        label: 'Home',
-                        isSelected: widget.navigationShell.currentIndex == 0,
-                        onTap: () => _onTap(0),
-                      ),
-                      _NavItem(
-                        icon: Icons.search_rounded,
-                        label: 'Search',
-                        isSelected: widget.navigationShell.currentIndex == 1,
-                        onTap: () => _onTap(1),
-                      ),
-                      _NavItem(
-                        icon: Icons.library_music_rounded,
-                        label: 'Collection',
-                        isSelected: widget.navigationShell.currentIndex == 2,
-                        onTap: () => _onTap(2),
-                      ),
-                      _NavItem(
-                        icon: Icons.person_rounded,
-                        label: 'Profile',
-                        isSelected: widget.navigationShell.currentIndex == 3,
-                        onTap: () => _onTap(3),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          
-          // Mini Player Layer
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 110, // Above the liquid glass nav bar
-            child: BlocConsumer<AudioPlayerBloc, AudioPlayerState>(
-              listenWhen: (prev, curr) => prev.currentTrack?.album?.coverUrl != curr.currentTrack?.album?.coverUrl,
-              listener: (context, state) {
-                final url = state.currentTrack?.album?.coverUrl;
-                if (url != null) _extractColor(url);
-              },
-              builder: (context, state) {
-                final track = state.currentTrack;
-                if (track == null) return const SizedBox.shrink();
+      backgroundColor: const Color(0xFF141414), // Softer, lighter base color instead of pure black
+      body: ValueListenableBuilder<double>(
+        valueListenable: transitionService.expansionProgress,
+        builder: (context, progress, child) {
+          // progress is now pre-curved by AudioPlayerScreen
+          // Forward: easeOutQuart (instant), Reverse: easeInOutCubic (smooth)
+          final curvedProgress = progress;
+          final scale = 1.0 - (0.07 * curvedProgress);
+          final radius = transitionService.deviceCornerRadius.value;
 
-                // If playing and we haven't extracted yet, do a silent extraction initialization
-                if (track.album?.coverUrl != null && _dominantColor == null && _lastCoverUrl.isEmpty) {
-                  _extractColor(track.album!.coverUrl!);
-                }
-
-                return                  Bounceable(
-                    onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        PageRouteBuilder(
-                          opaque: false,
-                          transitionDuration: const Duration(milliseconds: 600),
-                          reverseTransitionDuration: const Duration(milliseconds: 600),
-                          pageBuilder: (context, animation, secondaryAnimation) {
-                            return AudioPlayerScreen(
-                              dominantColor: _dominantColor ?? AppTheme.tiffanyBlue,
-                              routeAnimation: animation,
-                            );
-                          },
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                            return FadeTransition(
-                              opacity: CurvedAnimation(
-                                parent: animation,
-                                curve: const Interval(0.0, 0.3, curve: Curves.easeInOut),
-                              ),
-                              child: child,
-                            );
-                          },
-                        ),
-                      );
-                    },
-                    child: SizedBox(
-                      height: 68,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                                child: const SizedBox.expand(),
+          return Stack(
+            children: [
+              // 1. Background Content (Receding Stack)
+              Transform.scale(
+                scale: scale,
+                child: Padding(
+                  // Dynamic padding to enhance depth
+                  padding: EdgeInsets.all(curvedProgress * 2.5),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(radius),
+                    child: Stack(
+                      children: [
+                        widget.navigationShell,
+                        // Dimming overlay
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            ignoring: progress < 0.05,
+                            child: ColoredBox(
+                              color: Colors.black.withValues(
+                                alpha: curvedProgress * 0.55,
                               ),
                             ),
                           ),
-                          Positioned.fill(
-                            child: Material(
-                              type: MaterialType.transparency,
+                        ),
+                        // Liquid Glass Bottom Navigation
+                        Positioned(
+                          left: 24,
+                          right: 24,
+                          bottom: 32,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(40),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
                               child: Container(
+                                height: 70,
                                 decoration: BoxDecoration(
-                                    color: Colors.grey.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.1),
-                                      width: 0.5,
+                                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(40),
+                                  border: Border.all(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    _NavItem(
+                                      icon: Icons.home_rounded,
+                                      label: 'Home',
+                                      isSelected:
+                                          widget.navigationShell.currentIndex ==
+                                          0,
+                                      onTap: () => _onTap(0),
                                     ),
+                                    _NavItem(
+                                      icon: Icons.search_rounded,
+                                      label: 'Search',
+                                      isSelected:
+                                          widget.navigationShell.currentIndex ==
+                                          1,
+                                      onTap: () => _onTap(1),
+                                    ),
+                                    _NavItem(
+                                      icon: Icons.library_music_rounded,
+                                      label: 'Collection',
+                                      isSelected:
+                                          widget.navigationShell.currentIndex ==
+                                          2,
+                                      onTap: () => _onTap(2),
+                                    ),
+                                    _NavItem(
+                                      icon: Icons.person_rounded,
+                                      label: 'Profile',
+                                      isSelected:
+                                          widget.navigationShell.currentIndex ==
+                                          3,
+                                      onTap: () => _onTap(3),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                          Positioned.fill(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Row(
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 2. Mini Player Layer (Stationary Hero anchor)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 110,
+                child: Opacity(
+                  opacity: (1.0 - progress * 5).clamp(0.0, 1.0),
+                  child: BlocConsumer<AudioPlayerBloc, AudioPlayerState>(
+                    listenWhen: (prev, curr) =>
+                        prev.currentTrack?.album?.coverUrl !=
+                        curr.currentTrack?.album?.coverUrl,
+                    listener: (context, state) {
+                      final url = state.currentTrack?.album?.coverUrl;
+                      if (url != null && url != _lastCoverUrl) {
+                        _extractColor(url);
+                      }
+                    },
+                    builder: (context, state) {
+                      final track = state.currentTrack;
+                      if (track == null) return const SizedBox.shrink();
+
+                      if (track.album?.coverUrl != null &&
+                          _dominantColor == null &&
+                          _lastCoverUrl.isEmpty) {
+                        _extractColor(track.album!.coverUrl!);
+                      }
+
+                      return SizedBox(
+                              height: 68,
+                              child: Stack(
                                 children: [
-                                  SizedBox(
-                                    width: 46,
-                                    height: 46,
-                                    child: Hero(
-                                      tag: 'player_cover_${track.id}',
-                                      createRectTween: (begin, end) => _SquareRectTween(begin: begin, end: end),
-                                      flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
-                                        return _getAlbumFlightShuttleBuilder(
-                                          flightContext, animation, flightDirection, fromHeroContext, toHeroContext,
-                                          track.album?.coverUrl != null
-                                            ? CachedNetworkImage(imageUrl: track.album!.coverUrl!, fit: BoxFit.cover)
-                                            : Container(color: AppTheme.tiffanyBlue.withValues(alpha: 0.2), child: const Icon(Icons.music_note, color: AppTheme.tiffanyBlue)),
-                                        );
-                                      },
-                                      child: AspectRatio(
-                                        aspectRatio: 1.0,
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
-                                          child: track.album?.coverUrl != null
-                                            ? CachedNetworkImage(imageUrl: track.album!.coverUrl!, width: 46, height: 46, fit: BoxFit.cover)
-                                            : Container(width: 46, height: 46, color: AppTheme.tiffanyBlue.withValues(alpha: 0.2), child: const Icon(Icons.music_note, color: AppTheme.tiffanyBlue)),
+                                  Positioned.fill(
+                                    child: Bounceable(
+                                      onTap: () => _openAudioPlayer(context),
+                                      child: Stack(
+                                        children: [
+                                            Positioned.fill(
+                                              child: Opacity(
+                                                opacity: progress == 0.0 ? 1.0 : 0.0,
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(16),
+                                                  child: BackdropFilter(
+                                                    filter: ImageFilter.blur(
+                                                      sigmaX: 40,
+                                                      sigmaY: 40,
+                                                    ),
+                                                    child: const SizedBox.expand(),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned.fill(
+                                              child: Opacity(
+                                                opacity: progress == 0.0 ? 1.0 : 0.0,
+                                                child: Material(
+                                                  type: MaterialType.transparency,
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                        begin: Alignment.centerLeft,
+                                                        end: Alignment.centerRight,
+                                                        colors: [
+                                                          (_dominantColor ?? AppTheme.tiffanyBlue).withValues(alpha: 0.35),
+                                                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+                                                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+                                                        ],
+                                                        stops: const [0.0, 0.4, 1.0],
+                                                      ),
+                                                      borderRadius: BorderRadius.circular(
+                                                        16,
+                                                      ),
+                                                      border: Border.all(
+                                                        color: Colors.white.withValues(
+                                                          alpha: 0.1,
+                                                        ),
+                                                        width: 0.5,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned.fill(
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 46,
+                                                      height: 46,
+                                                      child: Hero(
+                                                        tag: 'player_cover_${track.id}',
+                                                        createRectTween: (begin, end) =>
+                                                            _SquareRectTween(
+                                                              begin: begin,
+                                                              end: end,
+                                                            ),
+                                                        flightShuttleBuilder:
+                                                            (
+                                                              flightContext,
+                                                              animation,
+                                                              flightDirection,
+                                                              fromHeroContext,
+                                                              toHeroContext,
+                                                            ) {
+                                                              return _getAlbumFlightShuttleBuilder(
+                                                                flightContext,
+                                                                animation,
+                                                                flightDirection,
+                                                                fromHeroContext,
+                                                                toHeroContext,
+                                                                track.album?.coverUrl !=
+                                                                        null
+                                                                    ? CachedNetworkImage(
+                                                                        imageUrl: track
+                                                                            .album!
+                                                                            .coverUrl!,
+                                                                        fit: BoxFit.cover,
+                                                                      )
+                                                                    : Container(
+                                                                        color: AppTheme
+                                                                            .tiffanyBlue
+                                                                            .withValues(
+                                                                              alpha: 0.2,
+                                                                            ),
+                                                                        child: const Icon(
+                                                                          Icons
+                                                                              .music_note,
+                                                                          color: AppTheme
+                                                                              .tiffanyBlue,
+                                                                        ),
+                                                                      ),
+                                                              );
+                                                            },
+                                                        child: AspectRatio(
+                                                          aspectRatio: 1.0,
+                                                          child: ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius.circular(10),
+                                                            child:
+                                                                track.album?.coverUrl !=
+                                                                    null
+                                                                ? CachedNetworkImage(
+                                                                    imageUrl: track
+                                                                        .album!
+                                                                        .coverUrl!,
+                                                                    width: 46,
+                                                                    height: 46,
+                                                                    fit: BoxFit.cover,
+                                                                  )
+                                                                : Container(
+                                                                    width: 46,
+                                                                    height: 46,
+                                                                    color: AppTheme
+                                                                        .tiffanyBlue
+                                                                        .withValues(
+                                                                          alpha: 0.2,
+                                                                        ),
+                                                                    child: const Icon(
+                                                                      Icons.music_note,
+                                                                      color: AppTheme
+                                                                          .tiffanyBlue,
+                                                                    ),
+                                                                  ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Opacity(
+                                                  opacity: progress == 0.0 ? 1.0 : 0.0,
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.center,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        track.title,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 13,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow:
+                                                            TextOverflow.ellipsis,
+                                                      ),
+                                                      Text(
+                                                        track.artist?.name ?? '-',
+                                                        style: TextStyle(
+                                                          color: Colors.white
+                                                              .withValues(alpha: 0.6),
+                                                          fontSize: 11,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow:
+                                                            TextOverflow.ellipsis,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 32),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        right: 12,
+                                        top: 0,
+                                        bottom: 0,
+                                        child: Opacity(
+                                          opacity: progress == 0.0 ? 1.0 : 0.0,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Bounceable(
+                                                onTap: () =>
+                                                    getIt<AudioPlayerBloc>().add(
+                                                      SkipToPreviousEvent(),
+                                                    ),
+                                                child: const Padding(
+                                                  padding: EdgeInsets.all(8.0),
+                                                  child: Icon(
+                                                    Icons.skip_previous_rounded,
+                                                  color: Colors.white,
+                                                  size: 28,
+                                                ),
+                                              ),
+                                            ),
+                                            Bounceable(
+                                              onTap: () {
+                                                if (state.isPlaying) {
+                                                  getIt<AudioPlayerBloc>().add(
+                                                    PauseEvent(),
+                                                  );
+                                                } else {
+                                                  getIt<AudioPlayerBloc>().add(
+                                                    ResumeEvent(),
+                                                  );
+                                                }
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: Icon(
+                                                  state.isPlaying
+                                                      ? Icons.pause_rounded
+                                                      : Icons.play_arrow_rounded,
+                                                  color: Colors.white,
+                                                  size: 32,
+                                                ),
+                                              ),
+                                            ),
+                                            Bounceable(
+                                              onTap: () =>
+                                                  getIt<AudioPlayerBloc>().add(
+                                                    SkipToNextEvent(),
+                                                  ),
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(8.0),
+                                                child: Icon(
+                                                  Icons.skip_next_rounded,
+                                                  color: Colors.white,
+                                                  size: 28,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          track.title,
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          track.artist?.name ?? '-',
-                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28),
-                                    onPressed: () => getIt<AudioPlayerBloc>().add(SkipToPreviousEvent()),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 32),
-                                    onPressed: () {
-                                      if (state.isPlaying) {
-                                        getIt<AudioPlayerBloc>().add(PauseEvent());
-                                      } else {
-                                        getIt<AudioPlayerBloc>().add(ResumeEvent());
-                                      }
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28),
-                                    onPressed: () => getIt<AudioPlayerBloc>().add(SkipToNextEvent()),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).animate().slideY(begin: 1.0, end: 0.0, duration: 400.ms, curve: Curves.easeOutQuart);
-              },
-            ),
-          ),
-        ],
+                          ],
+                        ),
+                      )
+                          .animate(key: const ValueKey('miniplayer_entrance'))
+                          .slideY(
+                            begin: 1.0,
+                            end: 0.0,
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuart,
+                          );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -319,7 +535,9 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? AppTheme.tiffanyBlue : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54);
+    final color = isSelected
+        ? AppTheme.tiffanyBlue
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -344,7 +562,7 @@ class _NavItem extends StatelessWidget {
                       color: AppTheme.tiffanyBlue.withValues(alpha: 0.5),
                       blurRadius: 4,
                       spreadRadius: 1,
-                    )
+                    ),
                   ],
                 ),
               ),

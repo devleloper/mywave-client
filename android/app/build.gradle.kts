@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "dev.app.mywave"
-    compileSdk = 34
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

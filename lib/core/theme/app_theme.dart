@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static const Color tiffanyBlue = Color(0xFF0ABAB5);
-  static const Color backgroundDark = Color(0xFF090909);
+  static const Color backgroundDark = Color.fromARGB(255, 17, 17, 17);
   static const Color surfaceDark = Color(0xFF1A1A1A);
 
   static const Color backgroundLight = Color(0xFFF5F5F7);
@@ -12,14 +12,35 @@ class AppTheme {
 
   static TextTheme _buildTextTheme(TextTheme base, Color color) {
     return base.copyWith(
-      displayLarge: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold),
-      displayMedium: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold),
-      displaySmall: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold),
-      headlineLarge: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold),
-      headlineMedium: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold),
-      headlineSmall: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold),
+      displayLarge: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
+      displayMedium: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
+      displaySmall: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineLarge: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineMedium: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineSmall: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
       titleLarge: GoogleFonts.outfit(color: color, fontWeight: FontWeight.w600),
-      titleMedium: GoogleFonts.outfit(color: color, fontWeight: FontWeight.w600),
+      titleMedium: GoogleFonts.outfit(
+        color: color,
+        fontWeight: FontWeight.w600,
+      ),
       titleSmall: GoogleFonts.outfit(color: color, fontWeight: FontWeight.w600),
       bodyLarge: GoogleFonts.outfit(color: color),
       bodyMedium: GoogleFonts.outfit(color: color),

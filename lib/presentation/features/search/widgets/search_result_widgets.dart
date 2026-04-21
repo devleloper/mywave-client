@@ -13,7 +13,6 @@ import '../../../widgets/section_header.dart';
 import '../../../widgets/track_cover.dart';
 import '../../player/bloc/audio_player_bloc.dart';
 import '../../player/bloc/audio_player_event.dart';
-import '../../player/view/audio_player_screen.dart';
 import '../bloc/search_state.dart';
 
 class SearchLoadedResults extends StatelessWidget {
@@ -209,12 +208,6 @@ class SearchTrackTile extends StatelessWidget {
         id: 'search_${track.id}',
       ),
     ));
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const AudioPlayerScreen(),
-    );
   }
 
   @override

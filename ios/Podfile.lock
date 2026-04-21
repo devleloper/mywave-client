@@ -13,6 +13,8 @@ PODS:
   - just_audio (0.0.1):
     - Flutter
     - FlutterMacOS
+  - screen_corner_radius (0.0.1):
+    - Flutter
   - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
@@ -24,6 +26,7 @@ DEPENDENCIES:
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
   - isar_flutter_libs (from `.symlinks/plugins/isar_flutter_libs/ios`)
   - just_audio (from `.symlinks/plugins/just_audio/darwin`)
+  - screen_corner_radius (from `.symlinks/plugins/screen_corner_radius/ios`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
 
 EXTERNAL SOURCES:
@@ -39,6 +42,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/isar_flutter_libs/ios"
   just_audio:
     :path: ".symlinks/plugins/just_audio/darwin"
+  screen_corner_radius:
+    :path: ".symlinks/plugins/screen_corner_radius/ios"
   sqflite_darwin:
     :path: ".symlinks/plugins/sqflite_darwin/darwin"
 
@@ -49,6 +54,7 @@ SPEC CHECKSUMS:
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
   isar_flutter_libs: 9fc2cfb928c539e1b76c481ba5d143d556d94920
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
+  screen_corner_radius: 64e0abb3920228a5f91c0680fa890222970025bd
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
 
 PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e

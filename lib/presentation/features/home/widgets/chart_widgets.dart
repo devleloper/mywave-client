@@ -12,7 +12,6 @@ import '../../../widgets/bounceable.dart';
 import '../../../widgets/explicit_badge.dart';
 import '../../player/bloc/audio_player_bloc.dart';
 import '../../player/bloc/audio_player_event.dart';
-import '../../player/view/audio_player_screen.dart';
 
 class ChartList extends StatelessWidget {
   const ChartList({super.key, required this.tracks});
@@ -60,12 +59,6 @@ class ChartCard extends StatelessWidget {
         id: 'charts',
       ),
     ));
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const AudioPlayerScreen(),
-    );
   }
 
   void _navigateToAlbum(BuildContext context) {
