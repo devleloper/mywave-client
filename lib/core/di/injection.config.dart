@@ -31,6 +31,7 @@ import '../../presentation/features/search/bloc/search_bloc.dart' as _i18;
 import '../network/auth_interceptor.dart' as _i6;
 import '../network/network_module.dart' as _i21;
 import '../router/app_router.dart' as _i3;
+import '../services/local_proxy_server.dart' as _i23;
 import 'storage_module.dart' as _i22;
 
 extension GetItInjectableX on _i1.GetIt {
@@ -48,7 +49,10 @@ extension GetItInjectableX on _i1.GetIt {
     final storageModule = _$StorageModule();
     gh.singleton<_i3.AppRouter>(() => _i3.AppRouter());
     gh.lazySingleton<_i4.AudioPlayerRepository>(
-        () => _i5.AudioPlayerServiceImpl());
+        () => _i5.AudioPlayerServiceImpl(
+              gh<_i7.AuthStorage>(),
+              gh<_i23.LocalProxyServer>(),
+            ));
     gh.lazySingleton<_i6.AuthInterceptor>(() => _i6.AuthInterceptor());
     gh.lazySingleton<_i7.AuthStorage>(() => _i7.AuthStorageImpl());
     gh.lazySingleton<_i8.Dio>(() => networkModule.dio);

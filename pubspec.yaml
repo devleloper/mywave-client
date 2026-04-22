@@ -32,6 +32,8 @@ dependencies:
   isar_flutter_libs: ^3.1.0+1
   path_provider: ^2.1.5
   audio_service: ^0.18.18
+  shelf: ^1.4.2
+  http: ^1.2.2
 
   rxdart: any
 dev_dependencies:
@@ -43,7 +45,7 @@ dev_dependencies:
   injectable_generator: ^2.4.2
   isar_generator: ^3.1.0+1
 
-  http: any
+
 flutter:
   uses-material-design: true
 

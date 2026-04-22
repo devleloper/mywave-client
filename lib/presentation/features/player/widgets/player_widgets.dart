@@ -212,7 +212,7 @@ class _TrackInfoWidgetState extends State<TrackInfoWidget> {
                 alignment: Alignment.centerLeft,
                 children: <Widget>[
                   ...previousChildren,
-                  if (currentChild != null) currentChild,
+                  ?currentChild,
                 ],
               );
             },

@@ -1,39 +1,40 @@
-// ignore_for_file: deprecated_member_use
-import 'package:just_audio/just_audio.dart' as ja;
-import 'package:injectable/injectable.dart';
-import 'package:rxdart/rxdart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:injectable/injectable.dart';
+import 'package:just_audio/just_audio.dart' as ja;
+import 'package:rxdart/rxdart.dart';
 
+import '../../../core/services/local_proxy_server.dart';
 import '../../../domain/entities/playback_context.dart';
 import '../../../domain/entities/track.dart';
-import '../../../core/di/injection.dart';
-import 'auth_storage.dart';
 import '../../../domain/repositories/audio_player_repository.dart' as domain;
+import 'auth_storage.dart';
 
 @LazySingleton(as: domain.AudioPlayerRepository)
 class AudioPlayerServiceImpl implements domain.AudioPlayerRepository {
   final ja.AudioPlayer _player;
-  late ja.ConcatenatingAudioSource _playlist;
-  
+  final AuthStorage _authStorage;
+  final LocalProxyServer _proxyServer;
+
   List<Track> _currentQueue = [];
   int _currentIndex = -1;
 
-  final BehaviorSubject<Track?> _currentTrackSubject = BehaviorSubject.seeded(null);
-  
-  AudioPlayerServiceImpl() : _player = ja.AudioPlayer() {
-    _playlist = ja.ConcatenatingAudioSource(children: [], useLazyPreparation: true);
-    _player.setAudioSource(_playlist);
-    
-    _player.playbackEventStream.listen((event) {
-      print('DEBUG_PLAYER: PlaybackEvent: processingState=${event.processingState}, '
-            'updatePosition=${event.updatePosition}, index=${event.currentIndex}');
-    }, onError: (Object e, StackTrace stackTrace) {
-      print('DEBUG_PLAYER: PlaybackEvent ERROR: $e');
-    });
+  final BehaviorSubject<Track?> _currentTrackSubject =
+      BehaviorSubject.seeded(null);
 
-    _player.playerStateStream.listen((state) {
-      print('DEBUG_PLAYER: PlayerState: playing=${state.playing}, processingState=${state.processingState}');
-    });
+  AudioPlayerServiceImpl(this._authStorage, this._proxyServer)
+      : _player = ja.AudioPlayer() {
+    _player.playbackEventStream.listen(
+      (event) {
+        debugPrint(
+          '[AudioPlayer] PlaybackEvent: state=${event.processingState}'
+          ', index=${event.currentIndex}',
+        );
+      },
+      onError: (Object e, StackTrace st) {
+        debugPrint('[AudioPlayer] PlaybackEvent error: $e');
+      },
+    );
 
     _player.currentIndexStream.listen((index) {
       if (index != null && index >= 0 && index < _currentQueue.length) {
@@ -65,71 +66,48 @@ class AudioPlayerServiceImpl implements domain.AudioPlayerRepository {
   List<Track> get currentQueue => List.unmodifiable(_currentQueue);
 
   @override
-  Future<void> playTrack(Track track, {PlaybackContext? context, List<Track>? initialQueue}) async {
+  Future<void> playTrack(
+    Track track, {
+    PlaybackContext? context,
+    List<Track>? initialQueue,
+  }) async {
     _currentQueue = initialQueue ?? [track];
     final initialIndex = _currentQueue.indexWhere((t) => t.id == track.id);
     _currentIndex = initialIndex >= 0 ? initialIndex : 0;
-    
+
     if (_currentQueue.isNotEmpty) {
       _currentTrackSubject.add(_currentQueue[_currentIndex]);
     }
-    
-    final arl = await getIt<AuthStorage>().getToken() ?? '';
+
+    final arl = await _authStorage.getToken() ?? '';
     final sources = _currentQueue.map((t) => _createAudioSource(t, arl)).toList();
-    
+
     try {
-      final newPlaylist = ja.ConcatenatingAudioSource(
-        children: sources,
+      await _player.setAudioSources(
+        sources,
+        initialIndex: _currentIndex,
+        initialPosition: Duration.zero,
       );
-      
-      _playlist = newPlaylist;
-      
-      await _player.setAudioSource(_playlist);
-      
-      if (_currentIndex >= 0 && _currentIndex < _currentQueue.length) {
-        // Explicitly seek instead of passing initialIndex to setAudioSource.
-        // This mitigates a major ExoPlayer state machine deadlock on Android.
-        await _player.seek(Duration.zero, index: _currentIndex);
-      }
-      
       await _player.play();
     } catch (e) {
-      print('DEBUG: AudioPlayer error: $e');
+      debugPrint('[AudioPlayer] Error starting playback: $e');
     }
-  }
-  
-  ja.AudioSource _createAudioSource(Track track, String userArl) {
-    if (track.isDownloaded && track.localPath != null) {
-      return ja.AudioSource.file(track.localPath!);
-    } else if (track.streamUrl != null) {
-      return ja.AudioSource.uri(Uri.parse(track.streamUrl!));
-    }
-    
-    String baseUrl = dotenv.env['API_URL'] ?? 'https://mywave-api.me1on.duckdns.org/api/v1';
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-    
-    final apiKey = dotenv.env['API_KEY'] ?? '';
-    final arl = userArl.isNotEmpty ? userArl : (dotenv.env['PROVIDER_ARL'] ?? '');
-    final url = '$baseUrl/stream/${track.id}.flac?quality=FLAC';
-    
-    print('DEBUG_PLAYER: Creating AudioSource for track ${track.id}');
-    print('DEBUG_PLAYER: URL: $url');
-    
-    return ja.AudioSource.uri(
-      Uri.parse(url),
-      headers: {
-        'x-api-key': apiKey,
-        'x-stream-auth': arl,
-      },
-    );
   }
 
   @override
   Future<void> addTracksToQueue(List<Track> tracks) async {
-    final arl = await getIt<AuthStorage>().getToken() ?? '';
+    final arl = await _authStorage.getToken() ?? '';
     _currentQueue.addAll(tracks);
-    final sources = tracks.map((t) => _createAudioSource(t, arl)).toList();
-    await _playlist.addAll(sources);
+    final allSources = _currentQueue.map((t) => _createAudioSource(t, arl)).toList();
+    try {
+      await _player.setAudioSources(
+        allSources,
+        initialIndex: _currentIndex,
+        initialPosition: _player.position,
+      );
+    } catch (e) {
+      debugPrint('[AudioPlayer] Error adding tracks to queue: $e');
+    }
   }
 
   @override
@@ -150,9 +128,7 @@ class AudioPlayerServiceImpl implements domain.AudioPlayerRepository {
   @override
   Future<void> setShuffleMode(bool enabled) async {
     await _player.setShuffleModeEnabled(enabled);
-    if (enabled) {
-      await _player.shuffle();
-    }
+    if (enabled) await _player.shuffle();
   }
 
   @override
@@ -160,13 +136,42 @@ class AudioPlayerServiceImpl implements domain.AudioPlayerRepository {
     switch (mode) {
       case domain.RepeatMode.off:
         await _player.setLoopMode(ja.LoopMode.off);
-        break;
       case domain.RepeatMode.one:
         await _player.setLoopMode(ja.LoopMode.one);
-        break;
       case domain.RepeatMode.all:
         await _player.setLoopMode(ja.LoopMode.all);
-        break;
     }
+  }
+
+  ja.AudioSource _createAudioSource(Track track, String userArl) {
+    if (track.isDownloaded && track.localPath != null) {
+      return ja.AudioSource.file(track.localPath!);
+    }
+
+    if (track.streamUrl != null) {
+      return ja.AudioSource.uri(Uri.parse(track.streamUrl!));
+    }
+
+    final backendBaseUrl = _resolveBackendBaseUrl();
+    final apiKey = dotenv.env['API_KEY'] ?? '';
+    final arl = userArl.isNotEmpty ? userArl : (dotenv.env['PROVIDER_ARL'] ?? '');
+
+    _proxyServer.registerTrack(
+      trackId: track.id,
+      apiKey: apiKey,
+      arl: arl,
+      backendBaseUrl: backendBaseUrl,
+    );
+
+    final proxyUrl = _proxyServer.proxyUrlFor(track.id);
+    debugPrint('[AudioPlayer] Proxy URL for ${track.id}: $proxyUrl');
+
+    return ja.AudioSource.uri(Uri.parse(proxyUrl));
+  }
+
+  String _resolveBackendBaseUrl() {
+    var url = dotenv.env['API_URL'] ?? 'http://localhost:3000';
+    if (url.endsWith('/')) url = url.substring(0, url.length - 1);
+    return url;
   }
 }

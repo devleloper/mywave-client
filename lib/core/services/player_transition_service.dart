@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:injectable/injectable.dart';
 
 class PlayerTransitionService {
   final ValueNotifier<double> expansionProgress = ValueNotifier<double>(0.0);

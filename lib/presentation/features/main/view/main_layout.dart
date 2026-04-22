@@ -67,10 +67,7 @@ class _MainLayoutState extends State<MainLayout> {
   Color? _dominantColor;
   String _lastCoverUrl = '';
 
-  bool _isPlayerOpen = false;
-
   Future<void> _openAudioPlayer(BuildContext context) async {
-    setState(() => _isPlayerOpen = true);
     await Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
         opaque: false,
@@ -87,9 +84,6 @@ class _MainLayoutState extends State<MainLayout> {
         },
       ),
     );
-    if (mounted) {
-      setState(() => _isPlayerOpen = false);
-    }
   }
 
   Future<void> _extractColor(String coverUrl) async {
